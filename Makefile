@@ -15,6 +15,6 @@ docker-push: ## push to docker hub
 	docker tag ${NAME} ${DOCKER_HUB}/${NAME}:${VERSION}
 	docker push ${DOCKER_HUB}/${NAME}:${VERSION}
 
-docker-prod:
+docker-prod: ## build then push docker image
 	make docker-build
 	make docker-push
