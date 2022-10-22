@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Test
-        run: echo ${{ steps.login-dockerhub.outputs }}
+        run: echo ${{ github.repository }}
       - name: Build and tag main image
         env:
           DOCKERHUB_REGISTRY: ${{ steps.login-dockerhub.outputs.registry }}
