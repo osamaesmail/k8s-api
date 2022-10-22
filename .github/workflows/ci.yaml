@@ -1,0 +1,86 @@
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+name: CI
+jobs:
+  Docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set APP_NAME variable
+        run: echo "APP_NAME=${{ github.repository }}" >> $GITHUB_ENV
+      - name: Login to Docker Hub
+        id: login-dockerhub
+        uses: ./
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#      - name: Login to Docker Hub
+#        env:
+#          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+#          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+#        run: echo $DOCKERHUB_TOKEN | docker login --username $DOCKERHUB_USERNAME --password-stdin
+#      - name: Login to Amazon ECR
+#        id: login-ecr
+#        uses: aws-actions/amazon-ecr-login@v1
+      - name: Build and tag main image
+        env:
+          DOCKERHUB_REGISTRY: ${{ steps.login-dockerhub.outputs.registry }}
+          DOCKERHUB_REPOSITORY: ${{ env.APP_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+          GIT_USERNAME: "${{ secrets.CI_BOT_GIT_USERNAME }}"
+          GIT_TOKEN: ${{ secrets.CI_BOT_GIT_TOKEN }}
+        run: docker build --build-arg GIT_COMMIT=$IMAGE_TAG --build-arg GIT_USERNAME=$GIT_USERNAME --build-arg GIT_TOKEN=$GIT_TOKEN -t $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY:$IMAGE_TAG -t $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY:latest-${GITHUB_REF##*/} .
+      - name: Push main image to DOCKERHUB
+        if: github.event_name != 'pull_request'
+        env:
+          DOCKERHUB_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          DOCKERHUB_REPOSITORY: ${{ env.APP_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: docker push $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY --all-tags
+#  HelmUpdate:
+#    if: github.event_name != 'pull_request'
+#    runs-on: crmt-github-runner-small
+#    needs: [Lint,Docker,Test]
+#    steps:
+#      - name: Set APP_NAME variable
+#        run: echo "APP_NAME=$(echo '${{ github.repository }}' | awk -F '-' '{print $2}')" >> $GITHUB_ENV
+#      - name: Set BRANCH_NAME variable
+#        run: echo "BRANCH_NAME=$(echo ${GITHUB_REF##*/} | tr / -)" >> $GITHUB_ENV
+#      - name: Check out helm chart repository
+#        uses: actions/checkout@v3
+#        with:
+#          repository: JumiaMDS/crmt-helm-charts
+#          path: helm-charts
+#          token: ${{ secrets.CI_BOT_GIT_TOKEN }}
+#      - name: Update Helm values
+#        if: env.BRANCH_NAME != 'master'
+#        working-directory: helm-charts
+#        env:
+#          IMAGE_TAG: ${{ github.sha }}
+#          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+#        run: sed -E -i'' "s/(.*tag:).*/\1 ${IMAGE_TAG}/" ${APP_NAME}/values-staging.yaml
+#      - name: Update Helm values-production
+#        if: env.BRANCH_NAME == 'master'
+#        working-directory: helm-charts
+#        env:
+#          IMAGE_TAG: ${{ github.sha }}
+#          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+#        run: sed -E -i'' "s/(.*tag:).*/\1 ${IMAGE_TAG}/" ${APP_NAME}/values-production.yaml
+#      - name: Setup Git for push
+#        working-directory: helm-charts
+#        env:
+#          GIT_USERNAME: "${{ secrets.CI_BOT_GIT_USERNAME }}"
+#          GIT_EMAIL: ${{ secrets.CI_BOT_GIT_USERNAME }}@jumia.com
+#        run: git config --local user.name $GIT_USERNAME && git config --local user.email $GIT_EMAIL
+#      - name: Commit helm changes
+#        working-directory: helm-charts
+#        env:
+#          APP_NAME: ${{ env.APP_NAME }}
+#          IMAGE_TAG: ${{ github.sha }}
+#          BRANCH_NAME: ${{ env.BRANCH_NAME }}
+#        run: git add ./${APP_NAME} && git diff-index --quiet HEAD || (git commit -m "updated ${APP_NAME} on ${BRANCH_NAME} with image tag ${IMAGE_TAG}" && git push)
