@@ -20,15 +20,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Test
-        run: echo ${{ env.DOCKERHUB_REGISTRY }}
       - name: Build and tag main image
         env:
           DOCKERHUB_REGISTRY: ${{ env.DOCKERHUB_REGISTRY }}
           DOCKERHUB_REPOSITORY: ${{ env.APP_NAME }}
           IMAGE_TAG: ${{ github.sha }}
         run: docker build -t $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY:$IMAGE_TAG -t $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY:latest-${GITHUB_REF##*/} .
-      - name: Push main image to DOCKERHUB
+      - name: Push main image to dockerhub
         if: github.event_name != 'pull_request'
         env:
           DOCKERHUB_REGISTRY: ${{ env.DOCKERHUB_REGISTRY }}
