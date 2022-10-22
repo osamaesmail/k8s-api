@@ -32,13 +32,11 @@ jobs:
           DOCKERHUB_REGISTRY: ${{ steps.login-dockerhub.outputs.registry }}
           DOCKERHUB_REPOSITORY: ${{ env.APP_NAME }}
           IMAGE_TAG: ${{ github.sha }}
-          GIT_USERNAME: "${{ secrets.CI_BOT_GIT_USERNAME }}"
-          GIT_TOKEN: ${{ secrets.CI_BOT_GIT_TOKEN }}
-        run: docker build --build-arg GIT_COMMIT=$IMAGE_TAG --build-arg GIT_USERNAME=$GIT_USERNAME --build-arg GIT_TOKEN=$GIT_TOKEN -t $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY:$IMAGE_TAG -t $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY:latest-${GITHUB_REF##*/} .
+        run: docker build -t $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY:$IMAGE_TAG -t $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY:latest-${GITHUB_REF##*/} .
       - name: Push main image to DOCKERHUB
         if: github.event_name != 'pull_request'
         env:
-          DOCKERHUB_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          DOCKERHUB_REGISTRY: ${{ steps.login-dockerhub.outputs.registry }}
           DOCKERHUB_REPOSITORY: ${{ env.APP_NAME }}
           IMAGE_TAG: ${{ github.sha }}
         run: docker push $DOCKERHUB_REGISTRY/$DOCKERHUB_REPOSITORY --all-tags
