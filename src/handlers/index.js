@@ -1,9 +1,10 @@
 const config = require('../config')
 
 module.exports = async (req, res) => {
-    console.log({
+    const data = {
         ...config,
         version: 1,
-    })
-    res.send(config)
+    }
+    console.log(data)
+    res.send(data)
 }
